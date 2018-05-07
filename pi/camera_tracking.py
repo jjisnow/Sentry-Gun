@@ -1,53 +1,95 @@
-import cv2
-import time
+# camera_tracking.py
+''' Show in camera window, the largest motion after various filters
+
+Args:
+
+
+'''
+
 import argparse
-#importing the neccessery libraries 
 
+import cv2
+
+
+# import smbus
+
+# bus = smbus.SMBus(1)
+# address = 0x04
+
+
+def writenum(value):
+    # bus.write_byte(address, value)
+    return -1
+
+
+# disenabling opencl because it causes an error to do with the background subtraction
 cv2.ocl.setUseOpenCL(False)
-#disenabling opencl because it causes an error to do with teh background subtraction
 
+# argument parser with minimum area for it to pick up as motion
 ap = argparse.ArgumentParser()
-ap.add_argument("-a", "--min-area", type=int, default=200, help="minimum area")
+ap.add_argument("-a", "--min-area", type=int, default=200,
+                help="minimum area to pick up as motion")
 args = vars(ap.parse_args())
-#arguement parser with minimum area for it to pick up as motion
 
+# getting the video out from the webcam
 cap = cv2.VideoCapture(0)
-#getting the video out from the webcam
 
+# getting the background subtractor ready for use
 fgbg = cv2.createBackgroundSubtractorMOG2()
-#getting the background subtractor ready for use
 
 while (1):
+    # starting the loop while  reading from the video capture
     ret, frame = cap.read()
-    #starting the loop while  reading from the video capture
-    
+
+    # applying the bakground subtractor
     fgmask = fgbg.apply(frame)
-    #applying the bakground subtractor
-    
+
     thresh = fgmask
     thresh = cv2.GaussianBlur(thresh, (21, 21), 0)
     thresh = cv2.threshold(thresh, 127, 255, cv2.THRESH_BINARY)[1]
-    thresh = cv2.dilate(thresh, None, iterations=1)
-    #making the image binary and adjusting it for the contouring
-    _, cnts, _= cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    #find the contours aroung the edges of the motion
+    thresh = cv2.dilate(thresh, None, iterations=2)
+
+    # making the image binary and adjusting it for the contouring
+    (_, cnts, _) = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL,
+                                    cv2.CHAIN_APPROX_SIMPLE)
+
+    # find the contours aroung the edges of the motion
     for c in cnts:
         if cv2.contourArea(c) < args["min_area"]:
             continue
-        #putting the contour area through the arguement parser for minimum area
+
+        # putting the contour area through the argument parser for maximum area
         c = max(cnts, key=cv2.contourArea)
 
+        # draw the rectangle around the object
         (x, y, w, h) = cv2.boundingRect(c)
-        cv2.rectangle(frame, (x, y), (x+ w, y + h), (0, 0, 255), 2)
-        #draw the rectangle around the object
+        cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 255), 2)
 
+        # draw a circle in the middleq
+        cv2.circle(frame, (x + w // 2, y + h // 2), 2, (0, 255, 0), -1)
+
+        a = (x + w) / 2
+        writenum(a)
+        print("width: {} ".format(a))
+
+        b = (y + h) / 2 + 100
+        writenum(b)
+        print("height: {} ".format(b))
+
+    # show the image in a new window
     cv2.imshow("Feed", frame)
-    #show the image in a new window
-    key = cv2.waitKey(1) & 0xFF
-    if key == ord("s"):
-        break
-    #break the loop
 
+    # break the loop
+    key = cv2.waitKey(1) & 0xFF
+
+    # save file on "s"
+    if key == ord("s"):
+        cv2.imwrite("output.jpg", frame)
+
+    # if the 'q' key is pressed, stop the loop
+    elif key == ord("q"):
+        break
+
+# stop the windows
 cap.release()
 cv2.destroyAllWindows()
-#stop the windows
