@@ -27,7 +27,8 @@ cv2.ocl.setUseOpenCL(False)
 
 # argument parser with minimum area for it to pick up as motion
 ap = argparse.ArgumentParser()
-ap.add_argument("-a", "--min-area", type=int, default=200,
+ap.add_argument("-a", "--min-area", type=int,
+                default=200,
                 help="minimum area to pick up as motion")
 args = vars(ap.parse_args())
 
@@ -37,6 +38,10 @@ cap = cv2.VideoCapture(0)
 # getting the background subtractor ready for use
 fgbg = cv2.createBackgroundSubtractorMOG2()
 
+# setting state variables for color changes
+is_gray = False
+
+# start the main loop which runs everything
 while (1):
     # starting the loop while  reading from the video capture
     ret, frame = cap.read()
@@ -53,6 +58,11 @@ while (1):
     (_, cnts, _) = cv2.findContours(thresh.copy(), cv2.RETR_EXTERNAL,
                                     cv2.CHAIN_APPROX_SIMPLE)
 
+    # Change the frame prior to drawing in contours
+    if is_gray == True:
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        frame = cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
+
     # find the contours aroung the edges of the motion
     for c in cnts:
         if cv2.contourArea(c) < args["min_area"]:
@@ -61,11 +71,20 @@ while (1):
         # putting the contour area through the argument parser for maximum area
         c = max(cnts, key=cv2.contourArea)
 
+        # find the moments and centroid of the contour and draw in red for comparison
+        M = cv2.moments(c)
+        cx = int(M['m10'] / M['m00'])
+        cy = int(M['m01'] / M['m00'])
+        cv2.circle(frame, (cx, cy), 2, (0, 0, 255), -1)
+
+        # draw the actual contour found
+        cv2.drawContours(frame, c, -1, color=(255, 0, 0), thickness=2)
+
         # draw the rectangle around the object
         (x, y, w, h) = cv2.boundingRect(c)
         cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 255), 2)
 
-        # draw a circle in the middleq
+        # draw a circle in the middle
         cv2.circle(frame, (x + w // 2, y + h // 2), 2, (0, 255, 0), -1)
 
         a = (x + w) / 2
@@ -76,17 +95,25 @@ while (1):
         writenum(b)
         print("height: {} ".format(b))
 
+    # Our operations on the frame (after contours drawn) come here
+
     # show the image in a new window
     cv2.imshow("Feed", frame)
 
-    # break the loop
+    # break the loop, wait 1ms whilst it checks for keypresses
+    # 0xFF needed to filter only last 8 bits out
     key = cv2.waitKey(1) & 0xFF
 
-    # save file on "s"
+    # Save Image if 's' is pressed
     if key == ord("s"):
-        cv2.imwrite("output.jpg", frame)
+        out_file = "output.jpg"
+        cv2.imwrite(out_file, frame)
+        print("{} saved!".format(out_file))
 
-    # if the 'q' key is pressed, stop the loop
+    elif key == ord("b"):
+        # toggle black and white
+        is_gray = not is_gray
+
     elif key == ord("q"):
         break
 
