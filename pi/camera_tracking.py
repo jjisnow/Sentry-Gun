@@ -100,6 +100,9 @@ while (1):
     # show the image in a new window
     cv2.imshow("Feed", frame)
 
+    # OR show the mask
+    # cv2.imshow("Feed", thresh)
+
     # break the loop, wait 1ms whilst it checks for keypresses
     # 0xFF needed to filter only last 8 bits out
     key = cv2.waitKey(1) & 0xFF
