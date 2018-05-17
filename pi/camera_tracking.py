@@ -8,7 +8,7 @@ Args:
 
 import argparse
 import os
-
+import numpy as np
 import cv2 as cv
 
 
@@ -142,19 +142,23 @@ while (1):
             cv.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 255), 2)
 
     if is_blurry:
-        kernel_tuple = (9, 9)
+        kernel_tuple = (25, 25)
         # by using a filter kernel
+        # kernel_tuple = (5, 5)
         # kernel = np.ones(kernel_tuple, np.float32) / 25
         # frame = cv.filter2D(frame, -1, kernel)
 
         # by using blur()
         # frame = cv.blur(frame, kernel_tuple)
 
-        # by using GaussianBlur
-        # frame = cv.GaussianBlur(frame, kernel_tuple, 0)
+        # by using GaussianBlur - must be + and odd
+        frame = cv.GaussianBlur(frame, kernel_tuple, 0)
 
-        # by using MedianBlur
-        frame = cv.medianBlur(frame, 9)
+        # by using MedianBlur - removes salt and pepper noise
+        # frame = cv.medianBlur(frame, 9)
+
+        # by using Bilateral Filtering - keeps borders
+        # frame = cv.bilateralFilter(frame, 9, 75, 75)
 
     # show the image in a new window
     cv.imshow("Feed", frame)
