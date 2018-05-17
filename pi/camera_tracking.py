@@ -7,6 +7,7 @@ Args:
 '''
 
 import argparse
+import os
 
 import cv2 as cv
 
@@ -43,6 +44,7 @@ is_gray = False
 detect_mvt = False
 detect_faces = False
 detect_torso = False
+is_blurry = False
 
 # obtain classifiers for identifying objects
 face_cascade = cv.CascadeClassifier('haarcascade_frontalface_default.xml')
@@ -117,8 +119,8 @@ while (1):
 
             # eyes are in the top 2/3 of faces, middle 60%
             eye_area = frame[
-                         (y):(y + (h*2)//3),
-                         (x + (w * 2) // 10):(x + (w * 8) // 10)]
+                       (y):(y + (h * 2) // 3),
+                       (x + (w * 2) // 10):(x + (w * 8) // 10)]
             eyes = eye_cascade.detectMultiScale(eye_area, 1.1, 5)
             for (ex, ey, ew, eh) in eyes:
                 cv.rectangle(eye_area, (ex, ey), (ex + ew, ey + eh), (0, 255, 0), 2)
@@ -139,6 +141,21 @@ while (1):
         for (x, y, w, h) in torsos:
             cv.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 255), 2)
 
+    if is_blurry:
+        kernel_tuple = (9, 9)
+        # by using a filter kernel
+        # kernel = np.ones(kernel_tuple, np.float32) / 25
+        # frame = cv.filter2D(frame, -1, kernel)
+
+        # by using blur()
+        # frame = cv.blur(frame, kernel_tuple)
+
+        # by using GaussianBlur
+        # frame = cv.GaussianBlur(frame, kernel_tuple, 0)
+
+        # by using MedianBlur
+        frame = cv.medianBlur(frame, 9)
+
     # show the image in a new window
     cv.imshow("Feed", frame)
 
@@ -149,9 +166,19 @@ while (1):
     # 0xFF needed to filter only last 8 bits out
     key = cv.waitKey(1) & 0xFF
 
-    # Save Image if 's' is pressed
+    # Save Image if 's' is pressed, in ascending file order
     if key == ord("s"):
-        out_file = "output.jpg"
+        base_file = "output.jpg"
+
+        base_file, file_extension = os.path.splitext(base_file)
+        out_file = base_file
+
+        i = 0
+        while os.path.exists("{}{}".format(out_file, file_extension)):
+            out_file = base_file + str(i)
+            i += 1
+
+        out_file += file_extension
         cv.imwrite(out_file, frame)
         print("{} saved!".format(out_file))
 
@@ -170,6 +197,10 @@ while (1):
     elif key == ord("t"):
         # toggle torse detection
         detect_torso = not detect_torso
+
+    elif key == ord("r"):
+        # toggle blurriness
+        is_blurry = not is_blurry
 
     elif key == ord("q"):
         break
