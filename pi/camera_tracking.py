@@ -24,7 +24,7 @@ def writenum(value):
 
 
 # disenabling opencl because it causes an error to do with the background subtraction
-cv.ocl.setUseOpenCL(False)
+cv.ocl.setUseOpenCL(True)
 
 # argument parser with minimum area for it to pick up as motion
 ap = argparse.ArgumentParser()
@@ -45,6 +45,7 @@ detect_mvt = False
 detect_faces = False
 detect_torso = False
 is_blurry = False
+show_threshold = False
 
 # obtain classifiers for identifying objects
 face_cascade = cv.CascadeClassifier('haarcascade_frontalface_default.xml')
@@ -57,9 +58,8 @@ while (1):
     # starting the loop while  reading from the video capture
     ret, frame = cap.read()
 
-    # applying the bakground subtractor
+    # applying the bakground subtractor - for movement detection
     fgmask = fgbg.apply(frame)
-
     thresh = fgmask
     thresh = cv.GaussianBlur(thresh, (21, 21), 0)
     thresh = cv.threshold(thresh, 127, 255, cv.THRESH_BINARY)[1]
@@ -69,12 +69,17 @@ while (1):
     (_, cnts, _) = cv.findContours(thresh.copy(), cv.RETR_EXTERNAL,
                                    cv.CHAIN_APPROX_SIMPLE)
 
+    # Option for "Canny" Edge detection
+    # frame = cv.Canny(frame, 50, 200, 3)
+
     # Change the frame prior to drawing in contours
     if is_gray == True:
         gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
         frame = cv.cvtColor(gray, cv.COLOR_GRAY2BGR)
 
+    # Run detection algorithms as required
     if detect_mvt:
+
         # find the contours aroung the edges of the motion
         for c in cnts:
             if cv.contourArea(c) < args["min_area"]:
@@ -142,7 +147,8 @@ while (1):
             cv.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 255), 2)
 
     if is_blurry:
-        kernel_tuple = (25, 25)
+        kernel_tuple = (45, 45)
+
         # by using a filter kernel
         # kernel_tuple = (5, 5)
         # kernel = np.ones(kernel_tuple, np.float32) / 25
@@ -161,10 +167,11 @@ while (1):
         # frame = cv.bilateralFilter(frame, 9, 75, 75)
 
     # show the image in a new window
-    cv.imshow("Feed", frame)
-
     # OR show the mask
-    # cv.imshow("Feed", thresh)
+    if show_threshold:
+        cv.imshow("Feed", thresh)
+    else:
+        cv.imshow("Feed", frame)
 
     # break the loop, wait 1ms whilst it checks for keypresses
     # 0xFF needed to filter only last 8 bits out
@@ -186,26 +193,31 @@ while (1):
         cv.imwrite(out_file, frame)
         print("{} saved!".format(out_file))
 
+    # toggle black and white
     elif key == ord("b"):
-        # toggle black and white
         is_gray = not is_gray
 
+    # toggle movement detection
     elif key == ord("m"):
-        # toggle movement detection
         detect_mvt = not detect_mvt
 
+    # toggle face detection
     elif key == ord("f"):
-        # toggle face detection
         detect_faces = not detect_faces
 
+    # toggle torse detection
     elif key == ord("t"):
-        # toggle torse detection
         detect_torso = not detect_torso
 
+    # toggle blurriness
     elif key == ord("r"):
-        # toggle blurriness
         is_blurry = not is_blurry
 
+    # toggle threshold showing
+    elif key == ord("h"):
+        show_threshold = not show_threshold
+
+    # quit
     elif key == ord("q"):
         break
 

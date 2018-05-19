@@ -14,4 +14,7 @@ References:
 
 <https://docs.opencv.org/3.4.1/d7/d8b/tutorial_py_face_detection.html>
 
+<https://www.superdatascience.com/opencv-face-detection/>
+
+
 
