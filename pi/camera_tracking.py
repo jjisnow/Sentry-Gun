@@ -23,6 +23,26 @@ def writenum(value):
     return -1
 
 
+# Copied from opencv samples
+bins = np.arange(256).reshape(256, 1)
+
+
+def hist_curve(im):
+    h = np.zeros((300, 256, 3))
+    if len(im.shape) == 2:
+        color = [(255, 255, 255)]
+    elif im.shape[2] == 3:
+        color = [(255, 0, 0), (0, 255, 0), (0, 0, 255)]
+    for ch, col in enumerate(color):
+        hist_item = cv.calcHist([im], [ch], None, [256], [0, 256])
+        cv.normalize(hist_item, hist_item, 0, 255, cv.NORM_MINMAX)
+        hist = np.int32(np.around(hist_item))
+        pts = np.int32(np.column_stack((bins, hist)))
+        cv.polylines(h, [pts], False, col)
+    y = np.flipud(h)
+    return y
+
+
 # disenabling opencl because it causes an error to do with the background subtraction
 cv.ocl.setUseOpenCL(True)
 
@@ -47,6 +67,7 @@ detect_torso = False
 is_blurry = False
 show_threshold = False
 show_rotation = False
+show_histogram = False
 
 # obtain classifiers for identifying objects
 face_cascade = cv.CascadeClassifier('haarcascade_frontalface_default.xml')
@@ -176,8 +197,17 @@ while (1):
     # OR show the mask
     if show_threshold:
         thresh = cv.bitwise_and(frame, frame, mask=thresh)
-        cv.imshow("Feed", thresh)
+        frame = thresh
+        cv.imshow("Feed", frame)
     else:
+        cv.imshow("Feed", frame)
+
+    if show_histogram:
+        curve = hist_curve(frame)
+        x_offset = y_offset = 5
+        frame[y_offset:y_offset + curve.shape[0],
+            x_offset:x_offset + curve.shape[1]]\
+            = curve
         cv.imshow("Feed", frame)
 
     # break the loop, wait 1ms whilst it checks for keypresses
@@ -227,6 +257,10 @@ while (1):
     # toggle rotation showing
     elif key == ord("o"):
         show_rotation = not show_rotation
+
+    # toggle histogram showing
+    elif key == ord("i"):
+        show_histogram = not show_histogram
 
     # quit
     elif key == ord("q"):
