@@ -27,14 +27,14 @@ def writenum(value):
 bins = np.arange(256).reshape(256, 1)
 
 
-def hist_curve(im):
+def hist_curve(im, hist_mask=None):
     h = np.zeros((300, 256, 3))
     if len(im.shape) == 2:
         color = [(255, 255, 255)]
     elif im.shape[2] == 3:
         color = [(255, 0, 0), (0, 255, 0), (0, 0, 255)]
     for ch, col in enumerate(color):
-        hist_item = cv.calcHist([im], [ch], None, [256], [0, 256])
+        hist_item = cv.calcHist([im], [ch], hist_mask, [256], [0, 256])
         cv.normalize(hist_item, hist_item, 0, 255, cv.NORM_MINMAX)
         hist = np.int32(np.around(hist_item))
         pts = np.int32(np.column_stack((bins, hist)))
@@ -198,14 +198,17 @@ while (1):
     # show the image in a new window
     # OR show the mask
     if show_threshold:
-        thresh = cv.bitwise_and(frame, frame, mask=thresh)
-        frame = thresh
+        color_thresh= cv.bitwise_and(frame, frame, mask=thresh)
+        frame = color_thresh
         cv.imshow("Feed", frame)
     else:
         cv.imshow("Feed", frame)
 
     if show_histogram:
-        curve = hist_curve(frame)
+        if show_threshold:
+            curve = hist_curve(frame, thresh)
+        else:
+            curve = hist_curve(frame)
         x_offset = y_offset = 2
 
         # scaling either as a factor of original
