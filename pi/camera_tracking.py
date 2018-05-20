@@ -68,6 +68,8 @@ is_blurry = False
 show_threshold = False
 show_rotation = False
 show_histogram = False
+# hist_position 0 top left, 1 bottom right, 2 top right, 3 bottom left
+hist_position = 0
 
 # obtain classifiers for identifying objects
 face_cascade = cv.CascadeClassifier('haarcascade_frontalface_default.xml')
@@ -204,10 +206,46 @@ while (1):
 
     if show_histogram:
         curve = hist_curve(frame)
-        x_offset = y_offset = 5
-        frame[y_offset:y_offset + curve.shape[0],
-            x_offset:x_offset + curve.shape[1]]\
-            = curve
+        x_offset = y_offset = 2
+
+        # scaling either as a factor of original
+        # curve = cv.resize(curve, None,
+        #                   fx=0.3,
+        #                   fy=0.3,
+        #                   interpolation=cv.INTER_LINEAR)
+
+        # or scaling as a factor of the original image
+        height, width = frame.shape[:2]
+        curve = cv.resize(curve,
+                          (width // 4, height // 4),
+                          interpolation=cv.INTER_LINEAR)
+        # Top Left
+        if hist_position == 0:
+            frame[y_offset:y_offset + curve.shape[0],
+            x_offset:x_offset + curve.shape[1]] \
+                = curve
+
+        # Bottom Right
+        elif hist_position == 1:
+            frame[frame.shape[0] - y_offset - curve.shape[0]: frame.shape[0] - y_offset,
+            frame.shape[1] - x_offset - curve.shape[1]:frame.shape[1] - x_offset] \
+                = curve
+
+        # Top Right
+        elif hist_position == 2:
+            frame[y_offset:y_offset + curve.shape[0],
+            frame.shape[1] - x_offset - curve.shape[1]:frame.shape[1] - x_offset] \
+                = curve
+
+        # Lower Left
+        elif hist_position == 3:
+            frame[frame.shape[0] - y_offset - curve.shape[0]: frame.shape[0] - y_offset,
+            x_offset:x_offset + curve.shape[1]] \
+                = curve
+
+        else:
+            print("hist_position {} out of bounds!".format(hist_position))
+            exit(1)
         cv.imshow("Feed", frame)
 
     # break the loop, wait 1ms whilst it checks for keypresses
@@ -261,6 +299,14 @@ while (1):
     # toggle histogram showing
     elif key == ord("i"):
         show_histogram = not show_histogram
+
+    # toggle histogram position showing
+    elif key == ord("p"):
+        if hist_position > 2:
+            hist_position = 0
+        else:
+            hist_position += 1
+
 
     # quit
     elif key == ord("q"):
