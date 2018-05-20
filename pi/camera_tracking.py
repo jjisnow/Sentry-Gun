@@ -46,6 +46,7 @@ detect_faces = False
 detect_torso = False
 is_blurry = False
 show_threshold = False
+show_rotation = False
 
 # obtain classifiers for identifying objects
 face_cascade = cv.CascadeClassifier('haarcascade_frontalface_default.xml')
@@ -58,7 +59,7 @@ while (1):
     # starting the loop while  reading from the video capture
     ret, frame = cap.read()
 
-    # applying the bakground subtractor - for movement detection
+    # applying the background subtractor - for movement detection
     fgmask = fgbg.apply(frame)
     thresh = fgmask
     thresh = cv.GaussianBlur(thresh, (21, 21), 0)
@@ -166,9 +167,15 @@ while (1):
         # by using Bilateral Filtering - keeps borders
         # frame = cv.bilateralFilter(frame, 9, 75, 75)
 
+    if show_rotation:
+        rows, cols, _ = frame.shape
+        M = cv.getRotationMatrix2D((cols / 2, rows / 2), 45, 1)
+        frame = cv.warpAffine(frame, M, (cols, rows))
+
     # show the image in a new window
     # OR show the mask
     if show_threshold:
+        thresh = cv.bitwise_and(frame, frame, mask=thresh)
         cv.imshow("Feed", thresh)
     else:
         cv.imshow("Feed", frame)
@@ -216,6 +223,10 @@ while (1):
     # toggle threshold showing
     elif key == ord("h"):
         show_threshold = not show_threshold
+
+    # toggle rotation showing
+    elif key == ord("o"):
+        show_rotation = not show_rotation
 
     # quit
     elif key == ord("q"):
